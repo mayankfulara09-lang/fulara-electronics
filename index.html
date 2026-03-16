@@ -1,0 +1,291 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<meta name="google-site-verification" content="zDsTiZNJ4B-WD3Ev4rjbmwQot67iq0gvx2L3qnKkCxc">
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+<title>Fulara Electronics</title>
+<script src="https://cdn.jsdelivr.net/npm/emailjs-com@3/dist/email.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<style>
+body{font-family:sans-serif;margin:0;background:#f5f5f5}
+header{background:#111;color:#fff;padding:12px;display:flex;justify-content:space-between;align-items:center}
+.cartIcon{cursor:pointer;font-size:22px}
+.search{padding:10px}
+.search input{width:100%;padding:10px;border-radius:20px;border:1px solid #ccc}
+.products{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px;padding:10px}
+.card{background:#fff;padding:10px;border-radius:12px;text-align:center;box-shadow:0 0 6px #ddd;cursor:pointer}
+.card img{width:100%;height:120px;object-fit:cover}
+.cart{position:fixed;right:-350px;top:0;width:320px;height:100%;background:#fff;padding:10px;overflow:auto;transition:.3s}
+.cart.active{right:0}
+.qtyBtn{padding:3px 8px;margin:2px;background:#ff9900;border:none;color:#fff}
+.modal{position:fixed;inset:0;background:rgba(0,0,0,.6);display:none;align-items:center;justify-content:center}
+.modalBox{background:#fff;padding:15px;border-radius:10px;width:90%;max-width:350px}
+.rating span{font-size:22px;color:#ccc;cursor:pointer}
+.rating .active{color:gold}
+.reviewBox{max-height:100px;overflow:auto;border:1px solid #ccc;margin-top:5px;padding:5px}
+.qr{display:none;width:100%;margin-top:10px}
+footer{background:#111;color:#fff;text-align:center;padding:15px;margin-top:20px}
+</style>
+</head>
+<body>
+
+<header>
+<h2>FULARA ELECTRONICS</h2>
+<div>📞 9891361264</div>
+<div class="cartIcon" onclick="toggleCart()">🛒</div>
+</header>
+
+<div class="search">
+<input id="search" placeholder="Search products..." onkeyup="searchProduct()">
+</div>
+
+<div class="products" id="products"></div>
+
+<div class="cart" id="cartBox">
+<h3>Cart <span onclick="toggleCart()" style="cursor:pointer">❌</span></h3>
+<div id="cartItems"></div>
+<p id="total"></p>
+
+<select id="delivery">
+<option value="pickup">Pickup from Store</option>
+<option value="home">Home Delivery</option>
+</select>
+
+<select id="payment">
+<option value="COD">Cash on Delivery</option>
+<option value="ONLINE">Online Payment</option>
+</select>
+
+<img id="qr" class="qr" src="https://i.ibb.co/HTKcQgkN/Whats-App-Image-2026-02-26-at-7-40-31-PM.jpg">
+<input type="file" id="screenshot">
+
+<button onclick="placeOrder()">Place Order</button>
+</div>
+
+<div class="modal" id="modal">
+<div class="modalBox">
+<h3 id="pName"></h3>
+<p id="pDesc"></p>
+<div class="rating" id="rating"></div>
+<textarea id="feedback" placeholder="Write feedback" style="width:100%"></textarea>
+<button onclick="saveReview()">Submit</button>
+<div class="reviewBox" id="reviews"></div>
+</div>
+</div>
+
+<script>
+emailjs.init("0mhrYvcJUvS67CrTD");
+
+const products=[
+{id:1,name:"LED Bulb 9W",price:100,desc:"Energy saving with 1year garrenty ",image:"https://tse2.mm.bing.net/th/id/OIP.GZgFMalDR44JjUQE8PF1ZgHaHa?rs=1&pid=ImgDetMain&o=7&rm=3"},
+{id:2,name:"LED Bulb 15W",price:150,desc:"Bright with 1year garrenty",image:"https://5.imimg.com/data5/SELLER/Default/2024/11/464812204/MK/FK/PI/188993359/15w-brightex-led-bulb-500x500.jpg"},
+{id:3,name:"LED Bulb 20W",price:180,desc:"Bright light with 1year garrenty",image:"https://5.imimg.com/data5/SELLER/Default/2023/6/313490859/XG/YD/OO/18536708/20-watt-led-bulb-500x500.JPG"},
+{id:4,name:"LED Bulb 40W",price:260,desc:"Heavy with 1year garrenty",image:"https://5.imimg.com/data5/SELLER/Default/2024/11/466263764/IZ/ZP/UC/188993359/40watts-brightex-led-bulb-1000x1000.jpeg"},
+{id:5,name:"LED Bulb 50W",price:320,desc:"bright light with 1year garrenty",image:"https://5.imimg.com/data5/SELLER/Default/2024/11/464839124/LF/CH/SV/188993359/50watts-brightex-led-bulb-500x500.jpg"},
+
+{id:6,name:"Strip Light 10m",price:300,desc:"Decor very high demandable product (AVAILABLE IN ALL COLOR AND MULTICOLOR)",image:"https://m.media-amazon.com/images/I/715VjHcnIEL._AC_SL1500_.jpg"},
+{id:7,name:"Waterproof Strip 50m",price:1200,desc:"Decor very hight demandable product (AVAILABLE IN ALL COLOR AND MULTICOLOR)",image:"https://tse2.mm.bing.net/th/id/OIP.hxXvdwVl3ah3OXctgiCfewHaHa?rs=1&pid=ImgDetMain&o=7&rm=3"},
+{id:8,name:"Tube Light",price:250,desc:"LED tube",image:"https://img3.exportersindia.com/product_images/bc-full/2018/7/5782587/led-tube-lights-1532085156-4121980.jpeg"},
+
+{id:9,name:"Exhaust Fan 6 inch",price:850,desc:"Fan",image:"https://m.media-amazon.com/images/I/3133CdyWtuL._AC_.jpg"},
+{id:10,name:"Exhaust Fan 9 inch",price:950,desc:"Fan",image:"https://5.imimg.com/data5/SELLER/Default/2022/5/XA/RV/KZ/82489894/usha-crisp-air-250mm-exhaust-fan-1000x1000.jpg"},
+
+{id:15,name:"Free Dish Setup Box",price:800,desc:"Free Dish setupbox, INSIDE BOX, ONE SETUPBOX,REMOTE,CABLE,ADAPTER ",image:"https://newdelhimart.com/wp-content/uploads/2024/02/REMOVE.png"},
+{id:16,name:"Android 4K Setup Box",price:1500,desc:"Makes your normal TV Smart INSIDE BOX ONE ANDROID 4K SETUPBOX ,REMOTE,HDMI CABLE,ADAPTER",image:"https://tse1.mm.bing.net/th/id/OIP.rztl8g2GRBzCxELr3BiNOgHaHa?w=800&h=800&rs=1&pid=ImgDetMain&o=7&rm=3"},
+{id:17,name:"Dish Antenna",price:800,desc:"Antenna",image:"https://5.imimg.com/data5/SELLER/Default/2024/5/418567218/LO/LB/SP/10010701/tata-sky-dish-antenna-1000x1000.jpg"},
+
+// NEW REMOTES
+{id:18,name:"Tata Play Remote",price:250,desc:"Remote",image:"https://onlinedthservice.com/wp-content/uploads/2020/08/tata-sky-remote.jpg"},
+{id:19,name:"Airtel Digital TV Remote",price:250,desc:"Remote",image:"https://tse4.mm.bing.net/th/id/OIP.1dyeOMfX9TcZpNpr8NqMuwHaHa?rs=1&pid=ImgDetMain&o=7&rm=3"},
+{id:20,name:"Dish TV Remote",price:250,desc:"Remote",image:"https://th.bing.com/th/id/R.d4f588fdce0fd2539582c158fe8d2892?rik=Phcm49uEiT8LeQ&riu=http%3a%2f%2f5.imimg.com%2fdata5%2fSELLER%2fDefault%2f2022%2f10%2fXT%2fIS%2fTF%2f160344494%2fdish-tv-dth-remote.jpg&ehk=dfg4hI9W8oMcMLs4Kuu%2bf9KJXzrqX6CXsBMWunXBsWM%3d&risl=&pid=ImgRaw&r=0"},
+{id:21,name:"d2h Remote",price:250,desc:"Remote",image:"https://www.tech4youstore.com/wp-content/uploads/2024/01/3.jpg"},
+{id:22,name:"DD Free Dish Remote",price:80,desc:"Remote",image:"https://tse2.mm.bing.net/th/id/OIP.xTcygvM38GeQ8e_3fOx-MQAAAA?rs=1&pid=ImgDetMain&o=7&rm=3"},
+{id:23,name:"Samsung LED TV Remote",price:180,desc:"Remote",image:"https://tse2.mm.bing.net/th/id/OIP.-ngHqjjGPNXjCUNCjgmWxAHaHa?rs=1&pid=ImgDetMain&o=7&rm=3"},
+{id:24,name:"LG LED TV Remote",price:180,desc:"Remote",image:"https://tse4.mm.bing.net/th/id/OIP.kyWCMkV7uT_u3xhMwF1ljwHaHa?rs=1&pid=ImgDetMain&o=7&rm=3"},
+{id:25,name:"Sony Bravia Remote",price:300,desc:"Remote",image:"https://m.media-amazon.com/images/I/51OuWQgK83L._AC_SX425_.jpg"},
+{id:26,name:"Panasonic TV Remote",price:250,desc:"Remote",image:"https://alltroniccomputer.com.sg/cdn/shop/files/N2QAYB000830-1_1400x.jpg?v=1706082469"},
+{id:27,name:"Philips TV Remote",price:250,desc:"Remote",image:"https://i5.walmartimages.com/asr/7ecd7b3f-dd49-4ff0-95f8-c01fc7a98adf_1.b9e92126ee500fe6533c3b4178120818.jpeg"},
+{id:28,name:"Onida TV Remote",price:250,desc:"Remote",image:"https://tse3.mm.bing.net/th/id/OIP.ucmz0ABZ16OaBUJvSdWgPgHaHa?rs=1&pid=ImgDetMain&o=7&rm=3"},
+{id:29,name:"Haier TV Remote",price:250,desc:"Remote",image:"https://tse1.mm.bing.net/th/id/OIP.0Cb0rcc6Cx-uhlyFxW0JKAHaHa?rs=1&pid=ImgDetMain&o=7&rm=3"},
+{id:30,name:"Toshiba TV Remote",price:250,desc:"Remote",image:"https://m.media-amazon.com/images/I/61+t6KFQ6aL._AC_SL1500_.jpg"},
+{id:31,name:"Mi TV Remote",price:250,desc:"Remote",image:"https://tse4.mm.bing.net/th/id/OIP.yBNhk2hApTA5hSyThtsLhwHaHa?rs=1&pid=ImgDetMain&o=7&rm=3"},
+{id:32,name:"OnePlus TV Remote",price:250,desc:"Remote",image:"https://m.media-amazon.com/images/I/41t2baymVCL._SL1000_.jpg"},
+{id:33,name:"Realme TV Remote",price:250,desc:"Remote",image:"https://tse1.mm.bing.net/th/id/OIP.FKtSbFqJ3LozWE0lNQ8y2AHaHa?rs=1&pid=ImgDetMain&o=7&rm=3"},
+{id:34,name:"TCL Android TV Remote",price:250,desc:"Remote",image:"https://5.imimg.com/data5/SELLER/Default/2024/5/420352900/PM/TH/BN/222012595/tcl-led-tv-remote-control-1000x1000.jpeg"},
+{id:35,name:"Motorola TV Remote",price:250,desc:"Remote",image:"https://www.remote-control-world.eu/image/large/14894.jpg"},
+{id:36,name:"Nokia Smart TV Remote",price:250,desc:"Remote",image:"https://faritha.com/cdn/shop/files/PhotoRoom-20230714_221019_956702fb-5dba-4cdc-8eea-f7f2feaa30c3.jpg?v=1689352834"},
+{id:37,name:"Universal Remote",price:200,desc:"Remote",image:"https://m.media-amazon.com/images/I/61Lzq+ovGwL._SX522_.jpg"},
+{id:38,name:"VU TV Remote",price:250,desc:"Remote",image:"https://th.bing.com/th/id/OIP.KiCUf_jCmrAp9bsPyeZy-wHaHa?o=7rm=3&rs=1&pid=ImgDetMain&o=7&rm=3"},
+{id:39,name:"BLOWER FAN COOLER",price:1700,desc:"Blower cooler gives cool air ",image:"https://5.imimg.com/data5/SELLER/Default/2025/2/488275004/CQ/WT/OG/79020855/img-20240106-wa0029-500x500.jpg"},
+];
+
+let cart=[];
+let reviewsData={};
+let currentProduct=null;
+let currentRating=0;
+
+function render(list){
+let html='';
+list.forEach(p=>{
+html+=`<div class='card' onclick='openProduct(${p.id})'>
+<img src='${p.image}'>
+<h4>${p.name}</h4>
+<p>₹${p.price}</p>
+<button onclick='event.stopPropagation();add(${p.id})'>Add</button>
+</div>`;
+});
+document.getElementById('products').innerHTML=html;
+}
+
+function searchProduct(){
+let val=search.value.toLowerCase();
+render(products.filter(p=>p.name.toLowerCase().includes(val)));
+}
+
+function openProduct(id){
+currentProduct=id;
+let p=products.find(x=>x.id==id);
+pName.innerText=p.name;
+pDesc.innerText=p.desc;
+modal.style.display='flex';
+loadRating();
+showReviews();
+}
+
+function loadRating(){
+rating.innerHTML='';
+for(let i=1;i<=5;i++){
+let s=document.createElement('span');
+s.innerText='★';
+s.onclick=()=>setRating(i);
+s.id='star'+i;
+rating.appendChild(s);
+}
+}
+
+function setRating(r){
+currentRating=r;
+for(let i=1;i<=5;i++){
+document.getElementById('star'+i).classList.toggle('active',i<=r);
+}
+}
+
+function saveReview(){
+let fb=feedback.value;
+if(!reviewsData[currentProduct])reviewsData[currentProduct]=[];
+reviewsData[currentProduct].push({rating:currentRating,text:fb});
+showReviews();
+feedback.value='';
+alert('Review Saved');
+}
+
+function showReviews(){
+let list=reviewsData[currentProduct]||[];
+let html='';
+list.forEach(r=>{
+html+=`⭐${r.rating} - ${r.text}<br>`;
+});
+document.getElementById('reviews').innerHTML=html;
+}
+
+function add(id){
+let item=cart.find(i=>i.id==id);
+if(item)item.qty++; else{let p=products.find(p=>p.id==id);cart.push({...p,qty:1});}
+update();
+}
+function update(){
+
+    let html = '';
+    let subtotal = 0;
+
+    cart.forEach(i=>{
+        subtotal += i.price * i.qty;
+
+        html += `
+        ${i.name} ₹${i.price} x ${i.qty}<br>
+        <button class='qtyBtn' onclick='change(${i.id},-1)'>-</button>
+        ${i.qty}
+        <button class='qtyBtn' onclick='change(${i.id},1)'>+</button>
+        <hr>`;
+    });
+
+    let delivery = document.getElementById('delivery').value;
+    let charge = 0;
+
+    if(delivery === 'home'){
+        if(subtotal >= 1000){
+            charge = 0;
+        } else {
+            charge = 80;
+        }
+    }
+
+    let total = subtotal + charge;
+
+    html += `<b>Subtotal: ₹${subtotal}</b><br>`;
+    html += `<b>Delivery Charge: ₹${charge}</b><br>`;
+
+    document.getElementById('cartItems').innerHTML = html;
+    document.getElementById('total').innerText = 'Total: ₹' + total;
+}
+function change(id,val){
+let item=cart.find(i=>i.id==id);
+item.qty+=val;
+if(item.qty<=0)cart=cart.filter(i=>i.id!=id);
+update();
+}
+
+function toggleCart(){cartBox.classList.toggle('active');}
+
+document.getElementById('payment').addEventListener('change',function(){
+qr.style.display=this.value=='ONLINE'?'block':'none';
+});
+
+function placeOrder(){
+if(cart.length==0){alert('Cart empty');return}
+
+let name=prompt('Enter Name');
+let phone=prompt('Enter Phone');
+let address=prompt('Enter Address');
+
+let payment=document.getElementById('payment').value;
+if(payment=='ONLINE'){
+let file=document.getElementById('screenshot').files[0];
+if(!file){alert('Upload payment screenshot');return}
+}
+
+let msg='Fulara Electronics Order\n\n';
+msg+=`Name:${name}\nPhone:${phone}\nAddress:${address}\n\n`;
+let total=0;
+cart.forEach(i=>{total+=i.price*i.qty;msg+=`${i.name} ₹${i.price} x ${i.qty} = ₹${i.price*i.qty}\n`});
+msg+=`\nTotal: ₹${total}`;
+
+emailjs.send("service_qip4z51","template_jd8xtmm",{name:name,phone:phone,address:address,message:msg});
+window.open('https://wa.me/919891361264?text='+encodeURIComponent(msg));
+
+const { jsPDF } = window.jspdf;
+const doc = new jsPDF();
+doc.text("FULARA ELECTRONICS BILL",20,10);
+doc.text(msg,10,20);
+doc.save("bill.pdf");
+
+cart=[];update();
+}
+
+window.onclick=e=>{if(e.target==modal)modal.style.display='none'};
+
+render(products);
+document.getElementById('delivery').addEventListener('change', update);
+</script>
+
+
+<footer>
+<h3>FULARA ELECTRONICS</h3>
+<p>📞 9891361264</p>
+<a href="https://maps.app.goo.gl/TEYEWBVwGniADDAc7" target="_blank" style="color:#ff9900">📍 View Location</a>
+</footer>
+
+</body>
+</html>
